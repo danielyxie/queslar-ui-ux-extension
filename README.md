@@ -26,15 +26,6 @@ Install [Tampermonkey](https://www.tampermonkey.net/) and then open the [raw lin
 
 You can also probably do the same thing  with Greasemonkey but I haven't personally tried it out
 
-
-#### Bookmarklet
-
-Create a bookmarket containing the following code and click it when you have Queslar open:
-
-```
-javascript:(function() {document.getElementsByTagName('head')[0].appendChild(document.createElement('script')).src='https://raw.githubusercontent.com/danielyxie/queslar-ui-ux-extension/main/queslar-ui-ux.user.js';}());
-```
-
 #### Manually
 
 You can just manually copy and paste the extension, but you'll have to do this everytime you close and re-open the game:
