@@ -1,6 +1,18 @@
+// ==UserScript==
+// @name         queslar-ui-ux
+// @namespace    http://tampermonkey.net/
+// @version      0.1
+// @description  UI/UX extension for Queslar PBBG
+// @author       Daniel Xie
+// @include      https://*queslar.com*
+// @run-at       document-end
+// @connect      githubusercontent.com
+// @connect      github.com
+// @connect      self
+// @grant        none
+// ==/UserScript==
+
 /*
- * v0.1
- * 
  * UI/UX Extension for Queslar PBBG. This script does not automate gameplay in any way.
  * Made by Ender
  * 
