@@ -24,4 +24,21 @@ The entire script can be found [here](queslar-ui-ux.user.js).
 
 Install [Tampermonkey](https://www.tampermonkey.net/) and then open the [raw link](https://github.com/danielyxie/queslar-ui-ux-extension/raw/main/queslar-ui-ux.user.js) to the script in order to install it.
 
+You can also probably do the same thing  with Greasemonkey but I haven't personally tried it out
+
+
+#### Bookmarklet
+
+Create a bookmarket containing the following code and click it when you have Queslar open:
+
+```
+javascript:(function() {document.getElementsByTagName('head')[0].appendChild(document.createElement('script')).src='https://raw.githubusercontent.com/danielyxie/queslar-ui-ux-extension/main/queslar-ui-ux.user.js';}());
+```
+
 #### Manually
+
+You can just manually copy and paste the extension, but you'll have to do this everytime you close and re-open the game:
+
+1. Copy [the script](queslar-ui-ux.user.js)
+2. Navigate to Queslar and open the DevTools console, which can be done by pressing F12 on most modern browsers
+3. Paste the code into the console and press enter to execute it
