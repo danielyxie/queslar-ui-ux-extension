@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         queslar-ui-ux
 // @namespace    http://tampermonkey.net/
-// @version      0.2
+// @version      0.3
 // @description  UI/UX extension for Queslar PBBG
 // @author       Daniel Xie
 // @include      https://*queslar.com*
@@ -25,24 +25,9 @@
     let upperMenu;
     let upperMenuToolbar;
     let chatContainer;
+    let extensionToolbar;
 
     let initialized = false;
-
-    window.addEventListener('DOMContentLoaded', () => {
-        gameContentContainer = document.querySelector('app-gamecontent');
-        upperProfileContainer = document.querySelector('app-upper-profile');
-        inventoryMenuContainer = document.querySelector('app-inventory-menu');
-        upperMenu = document.querySelector('app-upper-menu');
-        upperMenuToolbar = upperMenu.querySelector('mat-toolbar');
-        chatContainer = document.querySelector('app-chat-rooms');
-
-        // Create our own custom toolbar right below the main upper menu. We use this to display and info/data/UI 
-        // the extension needs
-        const extensionToolbar = upperMenuToolbar.cloneNode();
-        upperMenu.appendChild(extensionToolbar);
-
-        initialized = true;
-    });
 
     function notify(msg){ 
         // Notification
@@ -319,12 +304,6 @@
         lastPage = currentPage;
     });
 
-    mainObserver.observe(gameContentContainer, {
-        childList: true,
-        attributes: true,
-        subtree: true,
-    });
-
     let lastChatMutationTime = 0; 
     const chatObserver = new MutationObserver((mutations, obs) => {
         if (!initialized) { return; }
@@ -351,10 +330,48 @@
         lastChatMutationTime = now;
     });
 
-    chatObserver.observe(chatContainer, {
-        childList: true,
-        attributes: true,
-        subtree: true,
+    function initialize() {
+        gameContentContainer = document.querySelector('app-gamecontent');
+        upperProfileContainer = document.querySelector('app-upper-profile');
+        inventoryMenuContainer = document.querySelector('app-inventory-menu');
+
+        // There are issues finding this. It probably doesn't get rendered immediately. if it's null, let's wait a few seconds
+        // then try to initialize again
+        upperMenu = document.querySelector('app-upper-menu');
+        if (upperMenu == null) {
+            console.log("Failed to initialize Queslar-UI-UX extension. Trying again in 3 seconds...");
+            setTimeout(initialize, 3e3);
+            return;
+        }
+
+        upperMenuToolbar = upperMenu.querySelector('mat-toolbar');
+        chatContainer = document.querySelector('app-chat-rooms');
+
+        // Create our own custom toolbar right below the main upper menu. We use this to display and info/data/UI 
+        // the extension needs
+        extensionToolbar = upperMenuToolbar.cloneNode();
+        upperMenu.appendChild(extensionToolbar);
+
+        mainObserver.observe(gameContentContainer, {
+            childList: true,
+            attributes: true,
+            subtree: true,
+        });
+
+        chatObserver.observe(chatContainer, {
+            childList: true,
+            attributes: true,
+            subtree: true,
+        });
+
+        initialized = true;
+
+        console.log("Queslar-UI-UX extension initialized");
+    }
+
+    // Wait for DOM to load before starting script
+    window.addEventListener('DOMContentLoaded', () => {
+        initialize();
     });
 
 })();
