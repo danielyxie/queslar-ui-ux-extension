@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         queslar-ui-ux
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      0.2
 // @description  UI/UX extension for Queslar PBBG
 // @author       Daniel Xie
 // @include      https://*queslar.com*
@@ -12,38 +12,37 @@
 // @grant        none
 // ==/UserScript==
 
-/*
- * UI/UX Extension for Queslar PBBG. This script does not automate gameplay in any way.
- * Made by Ender
- * 
- * This may impact performance, but from personal testing there have not been any significant issues
- * 
- * Features:
- * - Added tab buttons for quickly switching between Gear sets 1 and 2 (for quick action set swapping)
- * - Notification for inactive quest (since the in game one doesnt seem to work). This is only reliable on when youre 
- *   on an actions page unfortunately. 
- * - Displays time needed to complete monster kill quests (currently only works for that quest, not the gold/action ones)
- * - Displays time until fatigue
- * - Notifications when you have unread whispers or system messages
- * 
- * 
- * This entire script is very brittle and can break if Blah changes the naming/styling of the UI
- */
+// https://github.com/danielyxie/queslar-ui-ux-extension/blob/main/README.md
+
 (function () {
     'use strict';
 
     // Store as much DOM shit as possible up front for performance reasons
-    const gameContentContainer = document.querySelector('app-gamecontent');
-    const upperProfileContainer = document.querySelector('app-upper-profile');
-    const inventoryMenuContainer = document.querySelector('app-inventory-menu');
-    const upperMenu = document.querySelector('app-upper-menu');
-    const upperMenuToolbar = upperMenu.querySelector('mat-toolbar');
-    const chatContainer = document.querySelector('app-chat-rooms');
 
-    // Create our own custom toolbar right below the main upper menu. We use this to display and info/data/UI 
-    // the extension needs
-    const extensionToolbar = upperMenuToolbar.cloneNode();
-    upperMenu.appendChild(extensionToolbar);
+    let gameContentContainer;
+    let upperProfileContainer;
+    let inventoryMenuContainer;
+    let upperMenu;
+    let upperMenuToolbar;
+    let chatContainer;
+
+    let initialized = false;
+
+    window.addEventListener('DOMContentLoaded', () => {
+        gameContentContainer = document.querySelector('app-gamecontent');
+        upperProfileContainer = document.querySelector('app-upper-profile');
+        inventoryMenuContainer = document.querySelector('app-inventory-menu');
+        upperMenu = document.querySelector('app-upper-menu');
+        upperMenuToolbar = upperMenu.querySelector('mat-toolbar');
+        chatContainer = document.querySelector('app-chat-rooms');
+
+        // Create our own custom toolbar right below the main upper menu. We use this to display and info/data/UI 
+        // the extension needs
+        const extensionToolbar = upperMenuToolbar.cloneNode();
+        upperMenu.appendChild(extensionToolbar);
+
+        initialized = true;
+    });
 
     function notify(msg){ 
         // Notification
@@ -240,6 +239,8 @@
     let lastInactiveQuestNotify = 0;
 
     const mainObserver = new MutationObserver((mutations, obs) => {
+        if (!initialized) { return; }
+
         // Consider Adding a throttle/batch for this for instances when there are a shitton of mutations at once
         console.log("Mutation observed");
         let toolbarTextWasSet = false;
@@ -326,6 +327,8 @@
 
     let lastChatMutationTime = 0; 
     const chatObserver = new MutationObserver((mutations, obs) => {
+        if (!initialized) { return; }
+
         const now = Date.now();
 
         // Throttle the processing of chat mutations for performance reasons and to not potentially spam user with notifications
