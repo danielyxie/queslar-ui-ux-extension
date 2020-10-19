@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         queslar-ui-ux
 // @namespace    http://tampermonkey.net/
-// @version      0.3
+// @version      0.4
 // @description  UI/UX extension for Queslar PBBG
 // @author       Daniel Xie
 // @include      https://*queslar.com*
@@ -179,7 +179,7 @@
         return getQuestData()?.currentQuest?.[0];
     }
 
-    // Currently only works for monster kill quests
+    // Currently only works for kill quests and action quests (NOT gold quests)
     function getTimeRemainingToCompleteCurrentQuest(includeSeconds = true) {
         const currentQuestData = getCurrentQuestData();
         if (currentQuestData?.objectiveType === "kills") {
@@ -188,6 +188,10 @@
             if (getActionsData()?.currentSkill === "battling") {
                 return getTimeRemainingToComplete(killsRemaining, includeSeconds);
             }
+        } else if (currentQuestData?.objectiveType === "actions") {
+            const actionsRemaining = currentQuestData.objectiveAmount - currentQuestData.currentProgress;
+
+            return getTimeRemainingToComplete(actionsRemaining, includeSeconds);
         }
 
         return null;
@@ -221,13 +225,21 @@
     }
 
     let lastPage = null;
-    let lastInactiveQuestNotify = 0;
+    let lastMainMutationTime = 0;
 
     const mainObserver = new MutationObserver((mutations, obs) => {
         if (!initialized) { return; }
 
-        // Consider Adding a throttle/batch for this for instances when there are a shitton of mutations at once
-        console.log("Mutation observed");
+        const now = Date.now();
+
+        // Throttle the processing of mutations for performance reasons
+        if (now - lastMainMutationTime < 6e3) {
+            return;
+        }
+
+        lastMainMutationTime = now;
+
+        console.log("Mutation processing");
         let toolbarTextWasSet = false;
 
         const currentPage = getViewedPage();
@@ -237,13 +249,7 @@
         // Consider running this separately from observer so that it doesn't depend on a mutation in order 
         // to fire
         if (!questActive) {
-            const now = Date.now();
-            
-            // Don't spam notifications in case there are a lot of mutations that trigger this
-            if (now - lastInactiveQuestNotify > 10e3) {
-                notify("Inactive Queslar quest!")
-                lastInactiveQuestNotify = now;
-            }
+            notify("Inactive Queslar quest!")
         }
 
         // If we switch to the "Actions" page, add shortcut buttons to switch between Gear Sets 1 and 2.
@@ -297,7 +303,7 @@
         if (!toolbarTextWasSet) {
             const timeToFatigue = getTimeRemainingToComplete(getActionsRemaining(), false);
             setToolbarText(`Time to fatigue: ${timeToFatigue}`);
-            addToolbarText(`Time to Kill Quest Completion: ${getTimeRemainingToCompleteCurrentQuest(false)}`);
+            addToolbarText(`Time to Quest Completion: ${getTimeRemainingToCompleteCurrentQuest(false)}`);
         }
 
         // This should go last

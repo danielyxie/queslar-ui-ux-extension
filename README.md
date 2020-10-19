@@ -12,7 +12,7 @@ Feel free to suggest/request any features or submit your own PR for changes
 * Added tab buttons for quickly switching between Gear sets 1 and 2 (for quick action set swapping)
 * Notification for inactive quest (since the in game one doesnt seem to work). This is only reliable on when youre 
   on an actions page unfortunately. 
-* Displays time needed to complete monster kill quests (currently only works for that quest, not the gold/action ones)
+* Displays time needed to complete monster kill and action quests (currently does not work for gold quests)
 * Displays time until fatigue
 * Notifications when you have unread whispers or system messages
 
