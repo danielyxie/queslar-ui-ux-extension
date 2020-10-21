@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         queslar-ui-ux
 // @namespace    http://tampermonkey.net/
-// @version      0.4
+// @version      0.5
 // @description  UI/UX extension for Queslar PBBG
 // @author       Daniel Xie
 // @include      https://*queslar.com*
@@ -26,6 +26,8 @@
     let upperMenuToolbar;
     let chatContainer;
     let extensionToolbar;
+    let extensionToolbarButtons;
+    let extensionToolbarText;
 
     let initialized = false;
 
@@ -44,16 +46,28 @@
     }
     
     function setToolbarText(txt) {
-        extensionToolbar.textContent = txt;
+        extensionToolbarText.textContent = txt;
     }
 
     function addToolbarText(txt) {
-        extensionToolbar.textContent = `${extensionToolbar.textContent}, ${txt}`;
+        extensionToolbarText.textContent = `${extensionToolbarText.textContent}, ${txt}`;
+    }
+
+    function createToolbarButton(txt) {
+        const button = document.createElement("button");
+        button.style.height = "35px";
+        if (txt) {
+            button.textContent = txt;
+        }
+    
+        return button;
     }
 
     // Switch to gearset. Argument must be 1, 2, or 3
     function equipGearSet(setValue) {
-        // TODO Could add validation for arg here 
+        if (![1, 2, 3].includes(setValue)) {
+            console.error(`Invalid value passed to equipGearSet(): ${setValue}`);
+        }
 
         const bodyData = {
             setValue: setValue
@@ -71,9 +85,30 @@
             console.log(data);
             return data.json();
         }).then(res => {
-            notify(`Successfully switched gear set`)
+            // There's a bug where sometimes when you switch equipment sets it doesn't properly work (only some of the 
+            // equipment from the desired gear set are actually equipped), even if the server says the gear set switch 
+            // was successful. Lets check to make sure everything is proper here and report in case anything went wrong
+            const equippedItems = getInventoryData()?.equippedItems?.items;
+
+            // Search through all equipped items. If any of them don't belong to the proper gear set, we'll send 
+            // a notification with an error
+            let bugDetected = false;
+            for (let i = 0; i < equippedItems.length; ++i) {
+                if (equippedItems[i]?.item?.gear_set !== setValue) {
+                    console.log(equippedItems[i]);
+                    console.log(typeof equippedItems[i]?.item?.gear_set);
+                    bugDetected = true;
+                    break;
+                }
+            }
+
+            if (bugDetected) {
+                notify("Equip Gear Set request succeeded, but it appears a bug occurred and equipment was not properly equipped. Please check and manually fix");
+            } else {
+                notify(`Successfully switched gear set. You have ${equippedItems.length} items equipped`);
+            }
         }).catch(e => {
-            notify(`Switching gear set failed: ${e}`)
+            notify(`Equip Gear Set request failed: ${e}`)
         });
     }
 
@@ -167,16 +202,29 @@
         return getAllAngularRootElements()?.[0].children?.[1]["__ngContext__"]?.[30]?.playerGeneralService?.playerActionService;
     }
 
-    function getActionsRemaining() {
-        return getActionsData()?.actions?.remaining;
+    function getInventoryData() {
+        return getAllAngularRootElements()?.[0].children?.[1]["__ngContext__"]?.[30]?.playerGeneralService?.playerInventoryService;
     }
 
     function getQuestData() {
         return getAllAngularRootElements()?.[0].children?.[1]["__ngContext__"]?.[30]?.playerGeneralService?.playerQuestService;
     }
 
+    function getSettingsData() {
+        getAllAngularRootElements()?.[0].children?.[1]["__ngContext__"]?.[30]?.playerGeneralService?.playerSettingsService;
+    }
+
+
+    function getActionsRemaining() {
+        return getActionsData()?.actions?.remaining;
+    }
+
     function getCurrentQuestData() {
         return getQuestData()?.currentQuest?.[0];
+    }
+
+    function isDoingPartyActions() {
+        getActionsData()?.partyService?.isFighting;
     }
 
     // Currently only works for kill quests and action quests (NOT gold quests)
@@ -194,7 +242,7 @@
             return getTimeRemainingToComplete(actionsRemaining, includeSeconds);
         }
 
-        return null;
+        return "N/A";
     }
 
     // Returns a formatted string indicating the amount of time it'll take to complete the specified number of actions.
@@ -239,7 +287,6 @@
 
         lastMainMutationTime = now;
 
-        console.log("Mutation processing");
         let toolbarTextWasSet = false;
 
         const currentPage = getViewedPage();
@@ -250,29 +297,6 @@
         // to fire
         if (!questActive) {
             notify("Inactive Queslar quest!")
-        }
-
-        // If we switch to the "Actions" page, add shortcut buttons to switch between Gear Sets 1 and 2.
-        // This makes it easier to do the action set swapping. This is necessary every time we switch to the 
-        // Actions page because the gamecontent HTML changes when switching pages (clearingg out 
-        // and previously added buttons)
-        if (currentPage === "actions" && lastPage !== "actions") {
-            let buttonToCopy = getFirstChildElementFromGameContentMenu();
-            if (buttonToCopy == null) {
-                console.error("Cant find button to copy");
-                return;
-            }
-
-            let eqGearSet1Button = buttonToCopy.cloneNode();
-            eqGearSet1Button.innerText = 'Eq Gear Set 1';
-            eqGearSet1Button.onclick = () => equipGearSet(1);
-
-            let eqGearSet2Button = buttonToCopy.cloneNode();
-            eqGearSet2Button.innerText = 'Eq Gear Set 2';
-            eqGearSet2Button.onclick = () => equipGearSet(2);
-
-            addElementToGameContentMenu(eqGearSet1Button);
-            addElementToGameContentMenu(eqGearSet2Button);
         }
 
         // If we're on the Quests tab (which is in the Actions page) and we don't have a quest, display the amount 
@@ -337,6 +361,10 @@
     });
 
     function initialize() {
+        if (initialized) {
+            return;
+        }
+        
         gameContentContainer = document.querySelector('app-gamecontent');
         upperProfileContainer = document.querySelector('app-upper-profile');
         inventoryMenuContainer = document.querySelector('app-inventory-menu');
@@ -356,6 +384,26 @@
         // Create our own custom toolbar right below the main upper menu. We use this to display and info/data/UI 
         // the extension needs
         extensionToolbar = upperMenuToolbar.cloneNode();
+        extensionToolbarButtons = document.createElement("span");
+        extensionToolbarText = document.createElement("span");
+        
+        // Add our extension buttons
+        const eqGearSet1Button = createToolbarButton("E Gear Set 1");
+        eqGearSet1Button.onclick = () => equipGearSet(1);
+
+        const eqGearSet2Button = createToolbarButton("E Gear Set 2");
+        eqGearSet2Button.onclick = () => equipGearSet(2);
+
+        const eqGearSet3Button = createToolbarButton("E Gear Set 3");
+        eqGearSet3Button.onclick = () => equipGearSet(3);
+
+        extensionToolbarButtons.appendChild(eqGearSet1Button);
+        extensionToolbarButtons.appendChild(eqGearSet2Button);
+        extensionToolbarButtons.appendChild(eqGearSet3Button);
+
+        // Add everything to the DOM
+        extensionToolbar.appendChild(extensionToolbarButtons);
+        extensionToolbar.appendChild(extensionToolbarText);
         upperMenu.appendChild(extensionToolbar);
 
         mainObserver.observe(gameContentContainer, {
@@ -377,7 +425,9 @@
 
     // Wait for DOM to load before starting script
     window.addEventListener('DOMContentLoaded', () => {
-        initialize();
+        if (!initialized) {
+            initialize();
+        }
     });
 
 })();
