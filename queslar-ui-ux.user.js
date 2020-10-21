@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         queslar-ui-ux
 // @namespace    http://tampermonkey.net/
-// @version      0.5
+// @version      0.6
 // @description  UI/UX extension for Queslar PBBG
 // @author       Daniel Xie
 // @include      https://*queslar.com*
@@ -103,9 +103,9 @@
             }
 
             if (bugDetected) {
-                notify("Equip Gear Set request succeeded, but it appears a bug occurred and equipment was not properly equipped. Please check and manually fix");
+                notify("WARNING: Equip Gear Set request succeeded, but it appears a bug occurred and equipment was not properly equipped. Please check and manually fix");
             } else {
-                notify(`Successfully switched gear set. You have ${equippedItems.length} items equipped`);
+                notify(`SUCCESSFULLY switched gear set. You have ${equippedItems.length} items equipped`);
             }
         }).catch(e => {
             notify(`Equip Gear Set request failed: ${e}`)
