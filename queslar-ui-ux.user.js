@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         queslar-ui-ux
 // @namespace    http://tampermonkey.net/
-// @version      0.6
+// @version      0.7
 // @description  UI/UX extension for Queslar PBBG
 // @author       Daniel Xie
 // @include      https://*queslar.com*
@@ -13,6 +13,12 @@
 // ==/UserScript==
 
 // https://github.com/danielyxie/queslar-ui-ux-extension/blob/main/README.md
+
+/*
+ * Potential future features:
+ * Could parase through log "playerActivityLogService" and notify for certain events like market orders being filled
+ * 
+ */
 
 (function () {
     'use strict';
@@ -94,9 +100,7 @@
             // a notification with an error
             let bugDetected = false;
             for (let i = 0; i < equippedItems.length; ++i) {
-                if (equippedItems[i]?.item?.gear_set !== setValue) {
-                    console.log(equippedItems[i]);
-                    console.log(typeof equippedItems[i]?.item?.gear_set);
+                if (equippedItems[i]?.item != null && equippedItems[i]?.item?.gear_set !== setValue) {
                     bugDetected = true;
                     break;
                 }

@@ -33,3 +33,4 @@ You can just manually copy and paste the extension, but you'll have to do this e
 1. Copy [the script](queslar-ui-ux.user.js)
 2. Navigate to Queslar and open the DevTools console, which can be done by pressing F12 on most modern browsers
 3. Paste the code into the console and press enter to execute it
+4. Close the DevTools. This is important because Queslar has some weird memory leak issue if DevTools is left open
