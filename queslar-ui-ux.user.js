@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         queslar-ui-ux
 // @namespace    http://tampermonkey.net/
-// @version      0.9
+// @version      0.10
 // @description  UI/UX extension for Queslar PBBG
 // @author       Daniel Xie
 // @include      https://*queslar.com*
@@ -389,7 +389,7 @@
         // to fire
         if (!questActive) {
             // Don't spam inactive quest notifications
-            if (now - lastInactiveQuestNotification < 4e3) {
+            if (now - lastInactiveQuestNotification > 4e3) {
                 notify("Inactive Queslar quest!")
                 lastInactiveQuestNotification = now;
             }
