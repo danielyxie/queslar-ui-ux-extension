@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         queslar-ui-ux
 // @namespace    http://tampermonkey.net/
-// @version      0.7
+// @version      0.8
 // @description  UI/UX extension for Queslar PBBG
 // @author       Daniel Xie
 // @include      https://*queslar.com*
@@ -17,6 +17,8 @@
 /*
  * Potential future features:
  * Could parase through log "playerActivityLogService" and notify for certain events like market orders being filled
+ * 
+ * Poll market crafting prices and alert if they're belkow a configurable value (this would require API key)
  * 
  */
 
@@ -59,6 +61,14 @@
         extensionToolbarText.textContent = `${extensionToolbarText.textContent}, ${txt}`;
     }
 
+    function createToolbarLink(txt, href) {
+        const link = document.createElement("a");
+        link.innerText = txt;
+        link.href = href;
+
+        return link;
+    }
+
     function createToolbarButton(txt) {
         const button = document.createElement("button");
         button.style.height = "35px";
@@ -93,27 +103,34 @@
         }).then(res => {
             // There's a bug where sometimes when you switch equipment sets it doesn't properly work (only some of the 
             // equipment from the desired gear set are actually equipped), even if the server says the gear set switch 
-            // was successful. Lets check to make sure everything is proper here and report in case anything went wrong
-            const equippedItems = getInventoryData()?.equippedItems?.items;
-
-            // Search through all equipped items. If any of them don't belong to the proper gear set, we'll send 
-            // a notification with an error
-            let bugDetected = false;
-            for (let i = 0; i < equippedItems.length; ++i) {
-                if (equippedItems[i]?.item != null && equippedItems[i]?.item?.gear_set !== setValue) {
-                    bugDetected = true;
-                    break;
-                }
-            }
-
-            if (bugDetected) {
-                notify("WARNING: Equip Gear Set request succeeded, but it appears a bug occurred and equipment was not properly equipped. Please check and manually fix");
-            } else {
-                notify(`SUCCESSFULLY switched gear set. You have ${equippedItems.length} items equipped`);
-            }
+            // was successful. Lets check to make sure everything is proper here and report in case anything went wrong.
+            // We need to wait a second or two before checking this so that the game's app data has up-to-date information
+            setTimeout(() => checkThatGearSetIsProperlyEquipped(setValue), 1e3);
         }).catch(e => {
             notify(`Equip Gear Set request failed: ${e}`)
         });
+    }
+
+    function checkThatGearSetIsProperlyEquipped(setValue) {
+        const equippedItems = getInventoryData()?.equippedItems?.items;
+
+        // Search through all equipped items. If any of them don't belong to the proper gear set, we'll send 
+        // a notification with an error
+        let bugDetected = false;
+        for (let i = 0; i < equippedItems.length; ++i) {
+            if (equippedItems[i]?.item != null && equippedItems[i]?.item?.gear_set !== setValue) {
+                bugDetected = true;
+                console.log(equippedItems);
+                console.log(i);
+                break;
+            }
+        }
+
+        if (bugDetected) {
+            notify("WARNING: Equip Gear Set request succeeded, but it appears a bug occurred and equipment was not properly equipped. Please check and manually fix");
+        } else {
+            notify(`SUCCESSFULLY switched gear set. You have ${equippedItems.length} items equipped`);
+        }
     }
 
     // Determine the page currently being viewed. Page is a link on the left-hand "Menu". 
@@ -285,7 +302,7 @@
         const now = Date.now();
 
         // Throttle the processing of mutations for performance reasons
-        if (now - lastMainMutationTime < 6e3) {
+        if (now - lastMainMutationTime < 1e3) {
             return;
         }
 
@@ -404,6 +421,30 @@
         extensionToolbarButtons.appendChild(eqGearSet1Button);
         extensionToolbarButtons.appendChild(eqGearSet2Button);
         extensionToolbarButtons.appendChild(eqGearSet3Button);
+        
+        // Add a button to see Market Listings
+        const marketListingsButton = createToolbarButton("My Listings");
+        marketListingsButton.onclick = () => {
+            window.location = `${window.location.origin}/#/game/market/listings`;
+        }
+
+        extensionToolbarButtons.appendChild(marketListingsButton);
+
+        // Add a button to see your service orders 
+        const myServiceOrdersButton = createToolbarButton("My Service Orders");
+        myServiceOrdersButton.onclick = () => {
+            window.location = `${window.location.origin}/#/game/market/service-orders`;
+        }
+
+        extensionToolbarButtons.appendChild(myServiceOrdersButton);
+
+        // Add a button to see Crafting Services (so you can check when prices are low)
+        const craftingServicesButton = createToolbarButton("Crafting Services");
+        craftingServicesButton.onclick = () => {
+            window.location = `${window.location.origin}/#/game/market/crafting`;
+        }
+
+        extensionToolbarButtons.appendChild(craftingServicesButton);
 
         // Add everything to the DOM
         extensionToolbar.appendChild(extensionToolbarButtons);

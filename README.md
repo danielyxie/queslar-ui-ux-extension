@@ -10,6 +10,7 @@ Feel free to suggest/request any features or submit your own PR for changes
 
 # Features:
 * Added easily accessible buttons for quickly switching between Gear Sets (mainly for quick action set swapping)
+* Adds several links for quickly accessing certain pages that my lazy ass has found useful
 * Notification for inactive quest (since the in game one doesnt seem to work). This is only reliable on when youre 
   on an actions page unfortunately. 
 * Displays time needed to complete monster kill and action quests (currently does not work for gold quests)
