@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         queslar-ui-ux
 // @namespace    http://tampermonkey.net/
-// @version      0.8
+// @version      0.9
 // @description  UI/UX extension for Queslar PBBG
 // @author       Daniel Xie
 // @include      https://*queslar.com*
@@ -16,14 +16,98 @@
 
 /*
  * Potential future features:
- * Could parase through log "playerActivityLogService" and notify for certain events like market orders being filled
- * 
- * Poll market crafting prices and alert if they're belkow a configurable value (this would require API key)
+ * Could parse through log "playerActivityLogService" and notify for certain events like market orders being filled
  * 
  */
 
 (function () {
     'use strict';
+
+    function notify(msg) {
+        // Notification
+        if (Notification.permission === "granted") {
+            new Notification(msg);
+        } else if (Notification.permission !== "denied") {
+            Notification.requestPermission().then(function (permission) {
+                // If the user accepts, let's create a notification
+                if (permission === "granted") {
+                    new Notification(msg);
+                }
+            });
+        }
+    }
+
+    const PLAYER_IDS = {
+        Screenshot: 1317,
+        trgKai: 1896,
+        kormara: 1421,
+    };
+
+    // Modify the WebSocket API so that we can intercept Queslar's WebSocket messages.
+    // This might let us do something with it later
+    (function () {
+        var OrigWebSocket = window.WebSocket;
+        var callWebSocket = OrigWebSocket.apply.bind(OrigWebSocket);
+        var wsAddListener = OrigWebSocket.prototype.addEventListener;
+        wsAddListener = wsAddListener.call.bind(wsAddListener);
+        window.WebSocket = function WebSocket(url, protocols) {
+            var ws;
+            if (!(this instanceof WebSocket)) {
+                // Called without 'new' (browsers will throw an error).
+                ws = callWebSocket(this, arguments);
+            } else if (arguments.length === 1) {
+                ws = new OrigWebSocket(url);
+            } else if (arguments.length >= 2) {
+                ws = new OrigWebSocket(url, protocols);
+            } else { // No arguments (browsers will throw an error)
+                ws = new OrigWebSocket();
+            }
+
+            wsAddListener(ws, 'message', function (event) {
+                // This doesn't work because it only picks up your price changes, shame
+                /*
+                const msg = event.data;
+
+                // Ideally we'd do some processing here to convert the websocket data to real structures,
+                // but some basic string parsing should be fine for now 
+                if (msg.includes("crafting data")) {
+                    console.log(`Crafting data message detected: ${msg}`);
+
+                    const regexMatch = msg.match(/"price_value":(\d+)/);
+                    if (regexMatch == null || regexMatch.length !== 2) {
+                        console.warn(`Regex failed to parse price_value for crafting data message: ${msg}`);
+                        return;
+                    }
+
+                    // TODO make this more human readable in the future
+                    const newPrice = regexMatch[1];
+
+                    if (msg.includes(`"username":"Screenshot"`)) {
+                        notify(`Screenshot price -> ${newPrice}`);
+                    } else if (msg.includes(`"username":"kormara"`)) {
+                        notify(`kormara price -> ${newPrice}`);
+                    } else if (msg.includes(`"username":"trgKai"`)) {
+                        notify(`trgKai price -> ${newPrice}`);
+                    } else if (msg.includes(`"username":"Saitama"`)) {
+                        notify(`Saitama price -> ${newPrice}`);
+                    } else if (msg.includes(`"username":"Ender"`)) {
+                        notify(`Ender price -> ${newPrice}`);
+                    }
+                }
+                */
+            });
+            return ws;
+        }.bind();
+        window.WebSocket.prototype = OrigWebSocket.prototype;
+        window.WebSocket.prototype.constructor = window.WebSocket;
+
+        var wsSend = OrigWebSocket.prototype.send;
+        wsSend = wsSend.apply.bind(wsSend);
+        OrigWebSocket.prototype.send = function (data) {
+            // TODO: Do something with the sent data if you wish.
+            return wsSend(this, arguments);
+        };
+    })();
 
     // Store as much DOM shit as possible up front for performance reasons
 
@@ -38,20 +122,6 @@
     let extensionToolbarText;
 
     let initialized = false;
-
-    function notify(msg){ 
-        // Notification
-        if (Notification.permission === "granted") {
-            new Notification(msg);
-        } else if (Notification.permission !== "denied") {
-            Notification.requestPermission().then(function (permission) {
-                // If the user accepts, let's create a notification
-                if (permission === "granted") {
-                    new Notification(msg);
-                }
-            });
-        }
-    }
     
     function setToolbarText(txt) {
         extensionToolbarText.textContent = txt;
@@ -295,6 +365,7 @@
 
     let lastPage = null;
     let lastMainMutationTime = 0;
+    let lastInactiveQuestNotification = 0;
 
     const mainObserver = new MutationObserver((mutations, obs) => {
         if (!initialized) { return; }
@@ -317,7 +388,11 @@
         // Consider running this separately from observer so that it doesn't depend on a mutation in order 
         // to fire
         if (!questActive) {
-            notify("Inactive Queslar quest!")
+            // Don't spam inactive quest notifications
+            if (now - lastInactiveQuestNotification < 4e3) {
+                notify("Inactive Queslar quest!")
+                lastInactiveQuestNotification = now;
+            }
         }
 
         // If we're on the Quests tab (which is in the Actions page) and we don't have a quest, display the amount 
