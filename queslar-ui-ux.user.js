@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         queslar-ui-ux
 // @namespace    http://tampermonkey.net/
-// @version      0.10
+// @version      0.11
 // @description  UI/UX extension for Queslar PBBG
 // @author       Daniel Xie
 // @include      https://*queslar.com*
@@ -363,9 +363,17 @@
         return !questTab.textContent.endsWith('!');
     }
 
+    // We don't want to depend on a DOM mutation to trigger the Inactive Quest Notification, so just set it on a 6s timer
+    function pollForInactiveQuest() {
+        if (!isQuestActive()) {
+            notify("Inactive Queslar quest!")
+        }
+
+        setTimeout(pollForInactiveQuest, 6e3);
+    }
+
     let lastPage = null;
     let lastMainMutationTime = 0;
-    let lastInactiveQuestNotification = 0;
 
     const mainObserver = new MutationObserver((mutations, obs) => {
         if (!initialized) { return; }
@@ -373,7 +381,7 @@
         const now = Date.now();
 
         // Throttle the processing of mutations for performance reasons
-        if (now - lastMainMutationTime < 1e3) {
+        if (now - lastMainMutationTime < 250) {
             return;
         }
 
@@ -384,16 +392,6 @@
         const currentPage = getViewedPage();
         const questActive = isQuestActive();
         const currentTab = getViewedTab();
-
-        // Consider running this separately from observer so that it doesn't depend on a mutation in order 
-        // to fire
-        if (!questActive) {
-            // Don't spam inactive quest notifications
-            if (now - lastInactiveQuestNotification > 4e3) {
-                notify("Inactive Queslar quest!")
-                lastInactiveQuestNotification = now;
-            }
-        }
 
         // If we're on the Quests tab (which is in the Actions page) and we don't have a quest, display the amount 
         // of time it takes to complete a quest option. RIght now this only works fo rthe monster kill quests (which 
@@ -537,6 +535,8 @@
             attributes: true,
             subtree: true,
         });
+
+        pollForInactiveQuest();
 
         initialized = true;
 
