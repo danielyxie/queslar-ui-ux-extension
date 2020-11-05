@@ -9,13 +9,13 @@ This entire script is very brittle and can break if Blah changes the naming/styl
 Feel free to suggest/request any features or submit your own PR for changes
 
 # Features:
-* Added easily accessible buttons for quickly switching between Gear Sets (mainly for quick action set swapping)
+* Addes easily accessible buttons for quickly switching between Gear Sets (mainly for quick action set swapping)
 * Adds several links for quickly accessing certain pages that my lazy ass has found useful
-* Notification for inactive quest (since the in game one doesnt seem to work). This is only reliable on when youre 
-  on an actions page unfortunately. 
+* Notification for inactive quest (since the in game one doesnt seem to work).
 * Displays time needed to complete monster kill and action quests (currently does not work for gold quests)
 * Displays time until fatigue
 * Notifications when you have unread whispers or system messages
+* Deletes Round Information from dungeon fights, making it easier to spam dungeons. 
 
 # Installation
 

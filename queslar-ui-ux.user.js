@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         queslar-ui-ux
 // @namespace    http://tampermonkey.net/
-// @version      0.11
+// @version      0.12
 // @description  UI/UX extension for Queslar PBBG
 // @author       Daniel Xie
 // @include      https://*queslar.com*
@@ -114,9 +114,11 @@
     let gameContentContainer;
     let upperProfileContainer;
     let inventoryMenuContainer;
+    let leftMenu;
     let upperMenu;
     let upperMenuToolbar;
     let chatContainer;
+    let overlayContainer;
     let extensionToolbar;
     let extensionToolbarButtons;
     let extensionToolbarText;
@@ -454,6 +456,41 @@
         lastChatMutationTime = now;
     });
 
+    const overlayObserver = new MutationObserver((mutations, obs) => {
+        if (!initialized) { return; }
+
+        if (overlayContainer.childElementCount === 0) { return; }
+
+        // Delete the Round Information from dungeon fighters overlay. This sometimes causes the popup to resize, which 
+        // shifts buttons around and makes it harder to spam dungeons, so we delete it for easier spamming.
+        // Hopefully this doesn't have too much performancce impact, we'll have to test it
+        const roundInformation = overlayContainer.querySelector("app-fighter-dungeon-battle-screen > mat-dialog-content > div:nth-child(3)");
+        if (roundInformation) {
+            roundInformation.remove();
+        }
+    });
+
+    // It looks like the Overlay Container only renders once the user has hovered over the screen itself. Since there's guarantee
+    // of this happening when the extension is loaded, we'll use a loop to try and initialize this. This is probably terrible
+    // but w.e
+    function initializeOverlayContainer() {
+        if (overlayContainer != null) { return; }
+
+        overlayContainer = document.getElementsByClassName("cdk-overlay-container")?.[0];
+
+        if (overlayContainer != null) {
+            overlayObserver.observe(overlayContainer, {
+                childList: true,
+                attributes: true,
+                subtree: true,
+            });
+
+            console.log("Initialized Overlay Container & Observer");
+        } else {
+            setTimeout(initializeOverlayContainer, 4e3);
+        }
+    }
+
     function initialize() {
         if (initialized) {
             return;
@@ -473,6 +510,7 @@
         }
 
         upperMenuToolbar = upperMenu.querySelector('mat-toolbar');
+        leftMenu = document.querySelector('app-menu');
         chatContainer = document.querySelector('app-chat-rooms');
 
         // Create our own custom toolbar right below the main upper menu. We use this to display and info/data/UI 
@@ -523,6 +561,8 @@
         extensionToolbar.appendChild(extensionToolbarButtons);
         extensionToolbar.appendChild(extensionToolbarText);
         upperMenu.appendChild(extensionToolbar);
+
+        initializeOverlayContainer();
 
         mainObserver.observe(gameContentContainer, {
             childList: true,
