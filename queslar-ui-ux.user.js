@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         queslar-ui-ux
 // @namespace    http://tampermonkey.net/
-// @version      0.12
+// @version      0.13
 // @description  UI/UX extension for Queslar PBBG
 // @author       Daniel Xie
 // @include      https://*queslar.com*
@@ -17,6 +17,8 @@
 /*
  * Potential future features:
  * Could parse through log "playerActivityLogService" and notify for certain events like market orders being filled
+ * Arbitrage opportunity detector (needs API key)
+ * Configurable quest notification & chat notification timer
  * 
  */
 
@@ -371,7 +373,7 @@
             notify("Inactive Queslar quest!")
         }
 
-        setTimeout(pollForInactiveQuest, 6e3);
+        setTimeout(pollForInactiveQuest, 60e3);
     }
 
     let lastPage = null;
@@ -437,7 +439,7 @@
         const now = Date.now();
 
         // Throttle the processing of chat mutations for performance reasons and to not potentially spam user with notifications
-        if (now - lastChatMutationTime < 15e3) {
+        if (now - lastChatMutationTime < 60e3) {
             return;
         }
 
