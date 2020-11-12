@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         queslar-ui-ux
 // @namespace    http://tampermonkey.net/
-// @version      0.13
+// @version      0.14
 // @description  UI/UX extension for Queslar PBBG
 // @author       Daniel Xie
 // @include      https://*queslar.com*
@@ -124,6 +124,10 @@
     let extensionToolbar;
     let extensionToolbarButtons;
     let extensionToolbarText;
+    
+    // Configurable properties
+
+    let notificationIntervalMs = 60e3;
 
     let initialized = false;
     
@@ -151,6 +155,16 @@
         }
     
         return button;
+    }
+
+    function createToolbarInput(placeholder) {
+        const input = document.createElement("input");
+        input.style.height = "35px";
+        if (placeholder) {
+            input.placeholder = placeholder;
+        }
+
+        return input;
     }
 
     // Switch to gearset. Argument must be 1, 2, or 3
@@ -373,7 +387,7 @@
             notify("Inactive Queslar quest!")
         }
 
-        setTimeout(pollForInactiveQuest, 60e3);
+        setTimeout(pollForInactiveQuest, notificationIntervalMs);
     }
 
     let lastPage = null;
@@ -439,7 +453,7 @@
         const now = Date.now();
 
         // Throttle the processing of chat mutations for performance reasons and to not potentially spam user with notifications
-        if (now - lastChatMutationTime < 60e3) {
+        if (now - lastChatMutationTime < notificationIntervalMs) {
             return;
         }
 
@@ -558,6 +572,24 @@
         }
 
         extensionToolbarButtons.appendChild(craftingServicesButton);
+        
+        // Configurable Notification interval
+        const notificationIntervalLabel = document.createElement("p");
+        notificationIntervalLabel.style.display = "inline";
+        notificationIntervalLabel.innerText = `Notification Interval (${notificationIntervalMs} ms): `;
+
+        const notificationIntervalInput = createToolbarInput();
+        notificationIntervalInput.value = notificationIntervalMs;
+        notificationIntervalInput.oninput = (e) => {
+            let inputValue = Number(e.target.value);
+            if (typeof inputValue === 'number' && !isNaN(inputValue) && inputValue > 100) {
+                notificationIntervalMs = inputValue;
+            }
+            notificationIntervalLabel.innerText = `Notification Interval (${notificationIntervalMs} ms): `;
+        }
+
+        extensionToolbarButtons.appendChild(notificationIntervalLabel);
+        extensionToolbarButtons.appendChild(notificationIntervalInput);
 
         // Add everything to the DOM
         extensionToolbar.appendChild(extensionToolbarButtons);
