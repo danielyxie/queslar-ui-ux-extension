@@ -383,9 +383,14 @@
 
     // We don't want to depend on a DOM mutation to trigger the Inactive Quest Notification, so just set it on a 6s timer
     function pollForInactiveQuest() {
-        if (!isQuestActive()) {
-            notify("Inactive Queslar quest!")
+        try {
+            if (!isQuestActive()) {
+                notify("Inactive Queslar quest!")
+            }
+        } catch(e) {
+            console.error("Quest detection failed");
         }
+        
 
         setTimeout(pollForInactiveQuest, notificationIntervalMs);
     }
@@ -556,22 +561,6 @@
         }
 
         extensionToolbarButtons.appendChild(marketListingsButton);
-
-        // Add a button to see your service orders 
-        const myServiceOrdersButton = createToolbarButton("My Service Orders");
-        myServiceOrdersButton.onclick = () => {
-            window.location = `${window.location.origin}/#/game/market/service-orders`;
-        }
-
-        extensionToolbarButtons.appendChild(myServiceOrdersButton);
-
-        // Add a button to see Crafting Services (so you can check when prices are low)
-        const craftingServicesButton = createToolbarButton("Crafting Services");
-        craftingServicesButton.onclick = () => {
-            window.location = `${window.location.origin}/#/game/market/crafting`;
-        }
-
-        extensionToolbarButtons.appendChild(craftingServicesButton);
         
         // Configurable Notification interval
         const notificationIntervalLabel = document.createElement("p");
